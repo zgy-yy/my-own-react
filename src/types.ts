@@ -1,9 +1,7 @@
-
-
 interface PropsInterface {
     [key: string]: any
 
-    children?: ReactElement[] | string[]
+    children?: ReactElement[]
 }
 
 interface ReactElement {

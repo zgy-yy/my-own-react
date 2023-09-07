@@ -1,5 +1,5 @@
 // 创建 虚拟dom ,vnode
-export function createReactElement(type: string, props: PropsInterface | null, ...children: ReactElement[] | string[]): ReactElement {
+export function createReactElement(type: string, props: PropsInterface | null, ...children: ReactElement[]): ReactElement {
     return {
         type,
         props: {
@@ -11,7 +11,8 @@ export function createReactElement(type: string, props: PropsInterface | null, .
     }
 }
 
-export function createReactTextElement(text: string | number) {
+// 将文字、数子等基本类型包装
+export function createReactTextElement(text: string | number): ReactElement {
     return {
         type: "TEXT_ELEMENT",
         props: {
