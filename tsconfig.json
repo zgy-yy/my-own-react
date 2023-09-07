@@ -9,12 +9,13 @@
     "importHelpers": true,
     // 指定生成哪个模块系统代码
     "module": "esnext",
-    "suppressImplicitAnyIndexErrors":true,
+    "suppressImplicitAnyIndexErrors": true,
     // 决定如何处理模块。
     "moduleResolution": "node",
     //启用所有严格类型检查选项。
     //启用--strict相当于启用--noImplicitAny,--noImplicitThis,--alwaysStrict，
     //--strictNullChecks和--strictFunctionTypes和--strictPropertyInitialization。
+    "strictNullChecks": false,
     "strict": true,
     // 生成相应的 .map文件
     "sourceMap": true,
@@ -33,13 +34,13 @@
     ],
     "types": [
       "vite/client"
-    ],
+    ]
     // 模块名到基于 baseUrl的路径映射的列表。
-//    "paths": {
-//      "@/*": [
-//        "src/*"
-//      ]
-//    }
+    //    "paths": {
+    //      "@/*": [
+    //        "src/*"
+    //      ]
+    //    }
   },
   "include": [
     "src/**/*.ts",

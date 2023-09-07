@@ -6,11 +6,14 @@ const mReact = {
 }
 /** @jsx mReact.createReactElement */
 const el = <div>
-    <p id={'name'}>hello</p>
-    <p>wo</p>
+    <div>
+        <p>p</p>
+        <a href="">a</a>
+    </div>
+    <h1 >hello</h1>
+
 </div>
 
-console.log(el)
 
 /******************************/
 // react 元素 element
