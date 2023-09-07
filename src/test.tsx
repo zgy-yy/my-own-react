@@ -7,10 +7,10 @@ const mReact = {
 /** @jsx mReact.createReactElement */
 const el = <div>
     <div>
-        <p>p</p>
+        <p>hello</p>
         <a href="">a</a>
     </div>
-    <h1 >hello</h1>
+    <h1>h1</h1>
 
 </div>
 

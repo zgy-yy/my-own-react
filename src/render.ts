@@ -1,8 +1,6 @@
 interface Fiber {
     type: string
-    props: {
-        children: ReactElement[]
-    }
+    props: PropsInterface
     dom: HTMLElement | Text
     parent: Fiber
     child: Fiber
@@ -12,35 +10,31 @@ interface Fiber {
 
 function createDom(fiber: Fiber) {
     // 根据 fiber.type,创建出真实dom
-    return fiber.type == "TEXT_ELEMENT" ? document.createTextNode("") : document.createElement(fiber.type)
+    const domNode = fiber.type == "TEXT_ELEMENT" ? document.createTextNode("") : document.createElement(fiber.type)
+    if (domNode instanceof Text) {
+        domNode.textContent = fiber.props.nodeValue
+    }
+    return domNode
 }
 
-let nextUnitOfWork: any
-
+let nextUnitOfWork: Fiber = null
+let wipRoot: Fiber = null // 把修改DOM 这部分内容记录在 fiber tree 上，通过追踪这颗wipRoot树来收集所有 DOM 节点的修改
 
 // react 中 用element 表示 react的虚拟dom节点
 export function render(element: ReactElement, container: HTMLElement) {
-    nextUnitOfWork = {
+    // work in progress root
+    wipRoot = {
+        type: '',
         dom: container,
         props: {
             children: [element]
-        }
+        },
+        parent: null,
+        child: null,
+        sibling: null
     }
 
-
-    // // 根据 ReactElement.type,创建出真实dom
-    // const dom = element.type == "TEXT_ELEMENT" ? document.createTextNode("") : document.createElement(element.type)
-    // const isProperty = (key: string) => key !== "children" //判断是否时属性，而非子节点
-    // Object.keys(element.props).filter(isProperty).forEach(name => {
-    //     dom[name] = element.props[name]
-    // })//将props上的属性 添加到真实dom上
-    //
-    // if (element.props.children) { //如果当前的element有子节点children 就递归调用render进行渲染
-    //     element.props.children.forEach(child => {
-    //         render(child, dom as HTMLElement)
-    //     })
-    // }
-    // container.appendChild(dom)
+    nextUnitOfWork = wipRoot
 }
 
 // 需要执行的任务，需要执行当前一小部分的任务，还需要返回下次要执行的任务，以供浏览器执行
@@ -57,9 +51,9 @@ function performUnitOfWork(fiber: Fiber): Fiber {
     if (!fiber.dom) {
         fiber.dom = createDom(fiber)
     }
-    if (fiber.parent) {
-        fiber.parent.dom.appendChild(fiber.dom)
-    }
+    // if (fiber.parent) {
+    //     fiber.parent.dom.appendChild(fiber.dom)
+    // }
     // TODO create new fibers
     const reactElements = fiber.props.children
     let index = 0;
@@ -96,6 +90,21 @@ function performUnitOfWork(fiber: Fiber): Fiber {
 
 }
 
+function commitRoot() { //提交到 dom
+    // TODO add nodes to dom
+    commitWork(wipRoot.child)
+    wipRoot = null
+}
+
+function commitWork(fiber: Fiber) {
+    if (!fiber) {
+        return
+    }
+    const domParent = fiber.parent.dom
+    domParent.appendChild(fiber.dom)
+    commitWork(fiber.child)//挂载子节点
+    commitWork(fiber.sibling)
+}
 
 function workLoop(deadline: IdleDeadline) {
     let shouldYield = false
@@ -104,7 +113,11 @@ function workLoop(deadline: IdleDeadline) {
         nextUnitOfWork = performUnitOfWork(nextUnitOfWork)
         shouldYield = deadline.timeRemaining() < 1 //可用时间小于1时 就停止执行任务，知道有新的空闲时间时
     }
+
+    if (!nextUnitOfWork && wipRoot) { //完成了 wipRoot的所有任务，就将该整棵树提交到真实dom上
+        commitRoot()
+    }
     requestIdleCallback(workLoop) //浏览器 决定合适执行回调，会在空闲时
 }
 
-// requestIdleCallback(workLoop)
+requestIdleCallback(workLoop)
