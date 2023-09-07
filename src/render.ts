@@ -1,21 +1,6 @@
-interface Fiber {
-    type: string
-    props: PropsInterface
-    dom: HTMLElement | Text
-    parent: Fiber
-    child: Fiber
-    sibling: Fiber
+import {reconcileChildren, deletions, updateDom} from "./fiber-dom";
+import {updateFunctionComponent, updateHostComponent} from "./component";
 
-}
-
-function createDom(fiber: Fiber) {
-    // 根据 fiber.type,创建出真实dom
-    const domNode = fiber.type == "TEXT_ELEMENT" ? document.createTextNode("") : document.createElement(fiber.type)
-    if (domNode instanceof Text) {
-        domNode.textContent = fiber.props.nodeValue
-    }
-    return domNode
-}
 
 let nextUnitOfWork: Fiber = null
 let wipRoot: Fiber = null // 把修改DOM 这部分内容记录在 fiber tree 上，通过追踪这颗wipRoot树来收集所有 DOM 节点的修改
@@ -31,9 +16,11 @@ export function render(element: ReactElement, container: HTMLElement) {
         },
         parent: null,
         child: null,
-        sibling: null
+        sibling: null,
+        alternate: currentRoot,
+        effectTag: 'PLACEMENT'
     }
-
+    deletions.splice(0, deletions.length)
     nextUnitOfWork = wipRoot
 }
 
@@ -48,34 +35,15 @@ export function render(element: ReactElement, container: HTMLElement) {
 */
 function performUnitOfWork(fiber: Fiber): Fiber {
     // TODO add dom node
-    if (!fiber.dom) {
-        fiber.dom = createDom(fiber)
+    // 根据Fiber的类型 进行不同的构建
+    const isFunctionComponent = fiber.type instanceof Function
+    if (isFunctionComponent) {
+        updateFunctionComponent(fiber)
+    } else {
+        updateHostComponent(fiber)
     }
-    // if (fiber.parent) {
-    //     fiber.parent.dom.appendChild(fiber.dom)
-    // }
-    // TODO create new fibers
-    const reactElements = fiber.props.children
-    let index = 0;
-    let prevSibling: Fiber = null //fiber的兄弟节点
-    while (index < reactElements.length) {
-        const reactEl = reactElements[index]
-        const newFiber: Fiber = {
-            type: reactEl.type,
-            props: reactEl.props,
-            parent: fiber,
-            dom: null,
-            child: null,
-            sibling: null
-        }
-        if (index === 0) {
-            fiber.child = newFiber
-        } else {
-            prevSibling.sibling = newFiber
-        }
-        prevSibling = newFiber
-        index++
-    }
+
+
     // TODO return next unit of work
     if (fiber.child) {
         return fiber.child //有child fiber 下一个工作节点就是child
@@ -90,20 +58,53 @@ function performUnitOfWork(fiber: Fiber): Fiber {
 
 }
 
+//
+let currentRoot: Fiber = null //保存提交的fiber
 function commitRoot() { //提交到 dom
     // TODO add nodes to dom
+    deletions.forEach(commitWork)
+
     commitWork(wipRoot.child)
+    currentRoot = wipRoot
     wipRoot = null
 }
+
+//
+
 
 function commitWork(fiber: Fiber) {
     if (!fiber) {
         return
     }
-    const domParent = fiber.parent.dom
-    domParent.appendChild(fiber.dom)
+    let domParentFiber = fiber.parent
+    while (!domParentFiber.dom) { // 函数组件没有父节点，所以向上寻找父节点
+        domParentFiber = domParentFiber.parent
+    }
+    const domParent = domParentFiber.dom
+    if (fiber.effectTag === "PLACEMENT" &&
+        fiber.dom != null) {
+        domParent.appendChild(fiber.dom)
+    } else if (fiber.effectTag === "UPDATE" && fiber.dom != null) {
+        updateDom(
+            fiber.dom,
+            fiber.alternate.props,
+            fiber.props
+        )
+    } else if (fiber.effectTag === "DELETION") {
+        commitDeletion(fiber, domParent)
+
+    }
+
     commitWork(fiber.child)//挂载子节点
     commitWork(fiber.sibling)
+}
+
+function commitDeletion(fiber: Fiber, domParent: HTMLElement | Text) {
+    if (fiber.dom) {
+        domParent.removeChild(fiber.dom)
+    } else {
+        commitDeletion(fiber.child, domParent)
+    }
 }
 
 function workLoop(deadline: IdleDeadline) {

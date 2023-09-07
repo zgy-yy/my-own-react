@@ -4,16 +4,15 @@ import {render} from "./render";
 const mReact = {
     createReactElement
 }
+
 /** @jsx mReact.createReactElement */
-const el = <div>
-    <div>
-        <p>hello</p>
-        <a href="">a</a>
-    </div>
-    <h1>h1</h1>
+function App(props: FProps) {
+    return <h1 id={props.id}>hai {props.name}</h1>
+}
 
-</div>
-
+const el = <App name={"foo"} id={'a'}></App>
+console.log(el)
+console.log(<p>p</p>)
 
 /******************************/
 // react 元素 element
